@@ -54,11 +54,16 @@
     <!-- Tasks rendered here -->
   </main>
 
-  <div class="add-task-form">
-    <a href="shortcuts://run-shortcut?name=Add%20Task" class="add-btn-link">
-      + Add Task
-    </a>
-  </div>
+  <form class="add-task-form" id="add-form">
+    <input
+      type="text"
+      id="task-input"
+      placeholder="Add a task..."
+      autocomplete="off"
+      enterkeyhint="done"
+    >
+    <button type="submit" class="add-btn" aria-label="Add task">+</button>
+  </form>
 
   <!-- Toast notifications -->
   <div id="toast" class="toast" aria-live="polite"></div>
