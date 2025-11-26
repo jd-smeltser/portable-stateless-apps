@@ -42,8 +42,6 @@ const tasks = createStore(db, 'tasks');
 // =============================================================================
 
 const listEl = document.getElementById('task-list');
-const formEl = document.getElementById('add-form');
-const inputEl = document.getElementById('task-input');
 const showToast = createToast(document.getElementById('toast'));
 
 async function render() {
@@ -177,14 +175,6 @@ async function handleShare() {
 // =============================================================================
 // EVENTS
 // =============================================================================
-
-formEl.addEventListener('submit', (e) => {
-  e.preventDefault();
-  const title = inputEl.value.trim();
-  if (!title) return;
-  handleAdd(title);
-  inputEl.value = '';
-});
 
 document.getElementById('btn-import').addEventListener('click', handleImport);
 document.getElementById('btn-share').addEventListener('click', handleShare);

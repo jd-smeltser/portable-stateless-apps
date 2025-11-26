@@ -325,6 +325,26 @@ input {
   transform: scale(0.95);
 }
 
+.add-btn-link {
+  flex: 1;
+  height: var(--touch-target);
+  background: var(--accent);
+  color: white;
+  border-radius: var(--radius-md);
+  font-size: 1rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+
+.add-btn-link:active {
+  transform: scale(0.98);
+  background: var(--accent-hover);
+}
+
 /* =============================================================================
    TOAST NOTIFICATIONS
    ============================================================================= */
