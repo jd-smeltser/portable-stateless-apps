@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Tasks Pro">
+
+  <meta http-equiv="Content-Security-Policy" content="
+    default-src 'self';
+    script-src 'self' https://unpkg.com;
+    style-src 'self' 'unsafe-inline';
+    img-src 'self' data:;
+    connect-src 'self';
+  ">
+
+  <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+
+  <title>Tasks Pro</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Sidebar (desktop) / Header (mobile) -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <h1>Tasks</h1>
+      </div>
+      <nav class="sidebar-nav">
+        <button class="nav-item active" data-filter="all">
+          <span class="nav-icon">📋</span>
+          <span class="nav-label">All Tasks</span>
+          <span class="nav-count" id="count-all">0</span>
+        </button>
+        <button class="nav-item" data-filter="today">
+          <span class="nav-icon">📅</span>
+          <span class="nav-label">Today</span>
+          <span class="nav-count" id="count-today">0</span>
+        </button>
+        <button class="nav-item" data-filter="upcoming">
+          <span class="nav-icon">🗓️</span>
+          <span class="nav-label">Upcoming</span>
+          <span class="nav-count" id="count-upcoming">0</span>
+        </button>
+        <button class="nav-item" data-filter="completed">
+          <span class="nav-icon">✓</span>
+          <span class="nav-label">Completed</span>
+          <span class="nav-count" id="count-completed">0</span>
+        </button>
+      </nav>
+      <div class="sidebar-footer">
+        <button id="btn-export" class="sidebar-action">
+          <span>Export</span>
+        </button>
+        <button id="btn-import" class="sidebar-action">
+          <span>Import</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <header class="main-header">
+        <button class="menu-toggle" id="menu-toggle" aria-label="Toggle menu">
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="3" y1="6" x2="21" y2="6"/>
+            <line x1="3" y1="12" x2="21" y2="12"/>
+            <line x1="3" y1="18" x2="21" y2="18"/>
+          </svg>
+        </button>
+        <h2 class="main-title" id="main-title">All Tasks</h2>
+      </header>
+
+      <div class="task-list-container">
+        <ul class="task-list" id="task-list">
+          <!-- Tasks rendered here -->
+        </ul>
+      </div>
+
+      <form class="add-task" id="add-form">
+        <input
+          type="text"
+          id="task-input"
+          placeholder="Add a task..."
+          autocomplete="off"
+        >
+        <input
+          type="date"
+          id="task-due"
+          class="due-input"
+        >
+        <button type="submit" class="add-btn">
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="12" y1="5" x2="12" y2="19"/>
+            <line x1="5" y1="12" x2="19" y2="12"/>
+          </svg>
+        </button>
+      </form>
+    </main>
+  </div>
+
+  <!-- Mobile nav overlay -->
+  <div class="overlay" id="overlay"></div>
+
+  <!-- Toast -->
+  <div id="toast" class="toast" aria-live="polite"></div>
+
+  <script src="https://unpkg.com/dexie@4/dist/dexie.min.js"></script>
+  <script type="module" src="app.js"></script>
+</body>
+</html>
