@@ -1,0 +1,97 @@
+name: Publish App
+
+on:
+  repository_dispatch:
+    types: [publish-app]
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Create app files
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+
+            const payload = context.payload.client_payload;
+
+            // Validate
+            if (!payload.name) throw new Error('App name is required');
+            if (!payload.js) throw new Error('App JS is required');
+
+            // Sanitize app name for directory
+            const appName = payload.name
+              .toLowerCase()
+              .replace(/[^a-z0-9]+/g, '-')
+              .replace(/^-|-$/g, '');
+
+            const appDir = `apps/${appName}`;
+            fs.mkdirSync(appDir, { recursive: true });
+
+            // Decode base64 payloads
+            const decode = (str) => str ? Buffer.from(str, 'base64').toString('utf8') : '';
+
+            const html = decode(payload.html);
+            const css = decode(payload.css);
+            const js = decode(payload.js);
+            const icon = payload.icon || '📱';
+            const description = payload.description || 'Custom app';
+
+            // Write index.html
+            const indexHtml = `<!DOCTYPE html>
+            <html lang="en">
+            <head>
+              <meta charset="UTF-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+              <meta name="apple-mobile-web-app-capable" content="yes">
+              <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+              <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+              <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+              <title>${payload.name}</title>
+              <link rel="stylesheet" href="styles.css">
+            </head>
+            <body>
+            ${html}
+              <script src="https://unpkg.com/dexie@4/dist/dexie.min.js"></script>
+              <script type="module" src="app.js"></script>
+            </body>
+            </html>`;
+
+            fs.writeFileSync(`${appDir}/index.html`, indexHtml);
+            fs.writeFileSync(`${appDir}/styles.css`, css);
+            fs.writeFileSync(`${appDir}/app.js`, js);
+
+            // Update launcher
+            let launcher = fs.readFileSync('index.html', 'utf8');
+            if (!launcher.includes(`apps/${appName}/`)) {
+              const newCard = `
+                  <a href="apps/${appName}/" class="app-card">
+                    <div class="app-icon">${icon}</div>
+                    <div class="app-name">${payload.name}</div>
+                    <div class="app-desc">${description}</div>
+                  </a>`;
+              launcher = launcher.replace(
+                '<div class="apps-grid">',
+                '<div class="apps-grid">' + newCard
+              );
+              fs.writeFileSync('index.html', launcher);
+            }
+
+            // Export for commit message
+            core.exportVariable('APP_NAME', payload.name);
+
+      - name: Commit and push
+        run: |
+          git config user.name "App Publisher"
+          git config user.email "publisher@portable-apps.local"
+          git add .
+          git commit -m "feat: publish app '${APP_NAME}'"
+          git push
