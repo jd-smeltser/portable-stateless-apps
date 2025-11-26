@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Loading App...</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #000;
+      color: #fff;
+    }
+    .loader { text-align: center; }
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid #333;
+      border-top-color: #0a84ff;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 16px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .error { color: #ff453a; }
+    pre {
+      text-align: left;
+      background: #1c1c1e;
+      padding: 16px;
+      border-radius: 8px;
+      margin-top: 16px;
+      max-width: 90vw;
+      overflow-x: auto;
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <div class="loader" id="loader">
+    <div class="spinner"></div>
+    <p>Loading app...</p>
+  </div>
+
+  <script>
+    (async function() {
+      const loader = document.getElementById('loader');
+
+      function showError(message, detail) {
+        loader.innerHTML = `
+          <p class="error">${message}</p>
+          ${detail ? `<pre>${detail}</pre>` : ''}
+          <p style="margin-top: 16px;"><a href="/" style="color: #0a84ff;">← Back to launcher</a></p>
+        `;
+      }
+
+      // Get app data from URL
+      const params = new URLSearchParams(window.location.search);
+      const appParam = params.get('app');
+
+      if (!appParam) {
+        showError('No app specified', 'URL should include ?app=BASE64_ENCODED_APP');
+        return;
+      }
+
+      let appData;
+      try {
+        // Try to decode (supports both plain base64 and gzip+base64)
+        const decoded = atob(appParam);
+
+        // Check for gzip magic bytes
+        const bytes = new Uint8Array(decoded.split('').map(c => c.charCodeAt(0)));
+        if (bytes[0] === 0x1f && bytes[1] === 0x8b) {
+          // Gzip compressed
+          const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'));
+          const text = await new Response(stream).text();
+          appData = JSON.parse(text);
+        } else {
+          appData = JSON.parse(decoded);
+        }
+      } catch (e) {
+        showError('Failed to decode app', e.message);
+        return;
+      }
+
+      // Validate app structure
+      if (!appData.html && !appData.js) {
+        showError('Invalid app format', 'App must have at least "html" or "js" property');
+        return;
+      }
+
+      // Build the app HTML
+      const html = appData.html || '<!DOCTYPE html><html><head></head><body><div id="app"></div></body></html>';
+      const css = appData.css || '';
+      const js = appData.js || '';
+      const name = appData.name || 'App';
+
+      // Create a full HTML document
+      const fullHtml = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+  <title>${name}</title>
+  <style>${css}</style>
+</head>
+<body>
+  ${appData.html || '<div id="app"></div>'}
+  <script src="https://unpkg.com/dexie@4/dist/dexie.min.js"><\/script>
+  <script type="module">${js}<\/script>
+</body>
+</html>`;
+
+      // Replace the current document with the app
+      document.open();
+      document.write(fullHtml);
+      document.close();
+    })();
+  </script>
+</body>
+</html>
