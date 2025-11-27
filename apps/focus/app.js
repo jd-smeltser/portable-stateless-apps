@@ -34,6 +34,14 @@ const State = {
     if (!this.stats) {
       await db.stats.add({ id: 1, completed: 0, streak: 0, lastDate: null });
       this.stats = await db.stats.get(1);
+    } else if (this.stats.completed === undefined) {
+      // Migration from old schema
+      await db.stats.update(1, {
+        completed: 0,
+        streak: this.stats.streak || 0,
+        lastDate: this.stats.lastActiveDate || null
+      });
+      this.stats = await db.stats.get(1);
     }
   }
 };
@@ -115,8 +123,8 @@ function renderBrainDump() {
     <div class="dump-view">
       <header class="header">
         <div class="stats">
-          <span class="stat-item">${State.stats.completed} done</span>
-          <span class="stat-item">🔥 ${State.stats.streak}</span>
+          <span class="stat-item">${State.stats.completed || 0} done</span>
+          <span class="stat-item">🔥 ${State.stats.streak || 0}</span>
         </div>
         <button class="settings-btn" id="settings-btn">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -207,8 +215,8 @@ function renderFocus() {
           </svg>
         </button>
         <div class="stats">
-          <span class="stat-item">${State.stats.completed} done</span>
-          <span class="stat-item">🔥 ${State.stats.streak}</span>
+          <span class="stat-item">${State.stats.completed || 0} done</span>
+          <span class="stat-item">🔥 ${State.stats.streak || 0}</span>
         </div>
       </header>
 
