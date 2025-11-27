@@ -311,6 +311,15 @@ function formatAIResponse(text) {
 // =============================================================================
 
 function renderSettings() {
+  // Debug code to inspect app state
+  const debugCode = `completion(JSON.stringify({
+  state: FocusDebug.State,
+  focus: FocusDebug.State.currentFocus,
+  stats: FocusDebug.State.stats
+}, null, 2))`;
+
+  const debugUrl = `shortcuts://run-shortcut?name=Micro%20Debugger&input=${encodeURIComponent(debugCode)}`;
+
   app.innerHTML = `
     <div class="settings-view">
       <header class="header">
@@ -342,6 +351,11 @@ function renderSettings() {
         <div class="setting-group">
           <h3 class="setting-section">Data</h3>
           <button class="danger-btn" id="clear-data-btn">Clear All Data</button>
+        </div>
+
+        <div class="setting-group">
+          <h3 class="setting-section">Debug</h3>
+          <a href="${debugUrl}" class="setting-btn debug-link">Run Debugger</a>
         </div>
       </main>
     </div>
