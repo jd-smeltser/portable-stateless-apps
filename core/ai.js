@@ -61,21 +61,32 @@ export const AI = {
     const model = options.model || this.MODELS.FLASH;
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        contents: [{
-          parts: [{ text: prompt }]
-        }],
-        generationConfig: {
-          temperature: options.temperature ?? 0.7,
-          maxOutputTokens: options.maxTokens ?? 1024
-        }
-      })
-    });
+    let response;
+    try {
+      response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          contents: [{
+            parts: [{ text: prompt }]
+          }],
+          generationConfig: {
+            temperature: options.temperature ?? 0.7,
+            maxOutputTokens: options.maxTokens ?? 1024
+          }
+        })
+      });
+    } catch (e) {
+      throw new Error(`Network error: ${e.message}`);
+    }
+
+    // Check content type - if HTML, it's an error page
+    const contentType = response.headers.get('content-type') || '';
+    if (contentType.includes('text/html')) {
+      throw new Error(`API returned HTML (likely 403 Forbidden). Check your API key at aistudio.google.com`);
+    }
 
     if (!response.ok) {
       const error = await response.json().catch(() => ({}));
@@ -83,7 +94,14 @@ export const AI = {
     }
 
     const data = await response.json();
-    return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+
+    if (!text) {
+      console.error('Unexpected API response:', JSON.stringify(data));
+      throw new Error('No text in API response. Check console for details.');
+    }
+
+    return text;
   },
 
   /**
