@@ -1,0 +1,348 @@
+/**
+ * Focus - Styles
+ * Dark theme with smooth animations
+ */
+
+:root {
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+
+  --bg: #0c0a09;
+  --bg-card: #1c1917;
+  --bg-card-hover: #292524;
+  --text: #fafaf9;
+  --text-muted: #78716c;
+  --text-dim: #44403c;
+  --accent: #6366f1;
+  --accent-glow: rgba(99, 102, 241, 0.4);
+  --success: #22c55e;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  height: 100%;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Inter', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding-top: var(--safe-top);
+  padding-bottom: var(--safe-bottom);
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+
+#app {
+  height: 100%;
+  transition: opacity 0.2s ease;
+}
+
+#app.fade-out {
+  opacity: 0;
+}
+
+/* =============================================================================
+   LEVEL 1: THE BUTTON
+   ============================================================================= */
+
+.button-view {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.initiate-btn {
+  position: relative;
+  width: 240px;
+  height: 240px;
+  border-radius: 50%;
+  border: none;
+  background: var(--accent);
+  cursor: pointer;
+  font-family: inherit;
+  transition: transform 0.15s ease;
+}
+
+.initiate-btn:hover {
+  transform: scale(1.05);
+}
+
+.initiate-btn:active,
+.initiate-btn.pressed {
+  transform: scale(0.95);
+}
+
+.initiate-btn.pressed {
+  background: var(--success);
+}
+
+.btn-text {
+  position: relative;
+  z-index: 2;
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  color: white;
+}
+
+.btn-glow {
+  position: absolute;
+  inset: -20px;
+  border-radius: 50%;
+  background: var(--accent);
+  filter: blur(40px);
+  opacity: 0.5;
+  z-index: 0;
+  animation: pulse 3s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.3; transform: scale(0.95); }
+  50% { opacity: 0.6; transform: scale(1.05); }
+}
+
+/* =============================================================================
+   SUCCESS VIEW (After check-in)
+   ============================================================================= */
+
+.success-view {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 24px;
+  animation: fadeIn 0.5s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.success-icon {
+  font-size: 4rem;
+  margin-bottom: 24px;
+  animation: bounce 0.6s ease;
+}
+
+@keyframes bounce {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.2); }
+}
+
+.success-title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+
+.success-streak {
+  font-size: 1rem;
+  color: var(--text-muted);
+}
+
+.success-hint {
+  margin-top: 48px;
+  font-size: 0.875rem;
+  color: var(--text-dim);
+  padding: 12px 16px;
+  border: 1px solid var(--bg-card);
+  border-radius: 8px;
+}
+
+/* =============================================================================
+   LEVEL 2: SINGULARITY
+   ============================================================================= */
+
+.singularity-view {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+.stats-bar {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 48px;
+}
+
+.stat {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.task-input-form {
+  margin-bottom: 24px;
+}
+
+.task-input-form input {
+  width: 100%;
+  padding: 16px;
+  font-size: 1.25rem;
+  font-family: inherit;
+  text-align: center;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid var(--bg-card);
+  color: var(--text);
+  transition: border-color 0.2s ease;
+}
+
+.task-input-form input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.task-input-form input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.task-input-form input::placeholder {
+  color: var(--text-dim);
+}
+
+.task-area {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.empty-state {
+  color: var(--text-dim);
+  font-size: 0.875rem;
+  animation: pulse-text 2s ease-in-out infinite;
+}
+
+@keyframes pulse-text {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
+/* =============================================================================
+   TASK CARD
+   ============================================================================= */
+
+.task-card {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+  background: var(--bg-card);
+  border: 1px solid var(--bg-card-hover);
+  border-radius: 24px;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.2s ease, opacity 0.3s ease;
+  animation: cardIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes cardIn {
+  from {
+    opacity: 0;
+    transform: scale(0.8) translateY(40px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.task-card:hover {
+  background: var(--bg-card-hover);
+}
+
+.task-card:active {
+  transform: scale(0.98);
+}
+
+.task-card.completing {
+  animation: cardOut 0.5s ease forwards;
+}
+
+@keyframes cardOut {
+  to {
+    opacity: 0;
+    transform: scale(1.1);
+    filter: blur(10px);
+  }
+}
+
+.task-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  text-align: center;
+  line-height: 1.4;
+  margin-bottom: 24px;
+  word-break: break-word;
+}
+
+.task-action {
+  font-size: 0.75rem;
+  font-weight: 600;
+  font-family: 'SF Mono', 'Monaco', monospace;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  background: var(--bg);
+  padding: 8px 16px;
+  border-radius: 100px;
+}
+
+/* =============================================================================
+   RESPONSIVE
+   ============================================================================= */
+
+@media (min-width: 768px) {
+  .initiate-btn {
+    width: 280px;
+    height: 280px;
+  }
+
+  .btn-text {
+    font-size: 1.5rem;
+  }
+
+  .singularity-view {
+    padding: 48px;
+    justify-content: center;
+  }
+
+  .task-area {
+    max-height: 400px;
+  }
+}
+
+/* =============================================================================
+   REDUCED MOTION
+   ============================================================================= */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
