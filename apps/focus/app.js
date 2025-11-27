@@ -312,13 +312,14 @@ function formatAIResponse(text) {
 
 function renderSettings() {
   // Debug code to inspect app state
-  const debugCode = `completion(JSON.stringify({
-  state: FocusDebug.State,
-  focus: FocusDebug.State.currentFocus,
-  stats: FocusDebug.State.stats
-}, null, 2))`;
-
-  const debugUrl = `shortcuts://run-shortcut?name=Micro%20Debugger&input=${encodeURIComponent(debugCode)}`;
+  const debugCode = `(async () => {
+  const result = JSON.stringify({
+    state: window.FocusDebug?.State,
+    focus: window.FocusDebug?.State?.currentFocus,
+    stats: window.FocusDebug?.State?.stats
+  }, null, 2);
+  completion(result);
+})();`;
 
   app.innerHTML = `
     <div class="settings-view">
@@ -355,13 +356,31 @@ function renderSettings() {
 
         <div class="setting-group">
           <h3 class="setting-section">Debug</h3>
-          <a href="${debugUrl}" class="setting-btn debug-link">Run Debugger</a>
+          <button class="setting-btn" id="debug-btn">Copy Debug Code</button>
+          <p class="setting-hint">Then share page to your debugger shortcut</p>
         </div>
       </main>
     </div>
   `;
 
   document.getElementById('back-btn').addEventListener('click', render);
+
+  document.getElementById('debug-btn').addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(debugCode);
+      showToast('Copied! Now share this page');
+
+      // Try to open share sheet (may not work on all browsers)
+      if (navigator.share) {
+        await navigator.share({
+          title: 'Focus Debug',
+          url: window.location.href
+        });
+      }
+    } catch (e) {
+      showToast('Copied to clipboard');
+    }
+  });
 
   document.getElementById('save-key-btn').addEventListener('click', async () => {
     const key = document.getElementById('api-key-input').value.trim();

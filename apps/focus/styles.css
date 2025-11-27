@@ -512,6 +512,13 @@ a:hover {
   text-decoration: none;
 }
 
+.setting-hint {
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  margin-top: 8px;
+  text-align: center;
+}
+
 /* =============================================================================
    TOASTS
    ============================================================================= */
