@@ -1,7 +1,9 @@
 /**
- * Focus - ADHD-friendly productivity app
- * Progressive levels that unlock as habits form
+ * Focus - AI-powered ADHD productivity
+ * Brain dump → One micro-action
  */
+
+import { AI } from '../../core/ai.js';
 
 // =============================================================================
 // DATABASE
@@ -9,104 +11,30 @@
 
 const db = new Dexie('FocusDB');
 
-db.version(1).stores({
-  tasks: '++id, status, createdAt',
+db.version(2).stores({
+  focus: 'id',
   stats: 'id'
 });
 
 // =============================================================================
-// XP ENGINE
+// STATE
 // =============================================================================
 
-const XP = {
-  // Level thresholds
-  CHECKIN_XP: 100,
-  TASK_XP: 150,
-  LEVEL_3_THRESHOLD: 500,
+const State = {
+  hasApiKey: false,
+  currentFocus: null,
+  stats: null,
+  isLoading: false,
 
-  // Initialize stats if first run
   async init() {
-    const stats = await db.stats.get(1);
-    if (!stats) {
-      await db.stats.add({
-        id: 1,
-        level: 1,
-        xp: 0,
-        streak: 0,
-        lastActiveDate: this.yesterday() // So they can play today
-      });
+    this.hasApiKey = await AI.hasApiKey();
+    this.currentFocus = await db.focus.get('current');
+    this.stats = await db.stats.get(1);
+
+    if (!this.stats) {
+      await db.stats.add({ id: 1, completed: 0, streak: 0, lastDate: null });
+      this.stats = await db.stats.get(1);
     }
-    return this.sync();
-  },
-
-  // Check for streak decay on app load
-  async sync() {
-    const stats = await db.stats.get(1);
-    if (!stats) return;
-
-    const daysSince = this.daysBetween(stats.lastActiveDate, new Date());
-
-    // Already active today - nothing to do
-    if (daysSince === 0) return stats;
-
-    // Missed more than 1 day - reset streak, apply mercy rule
-    if (daysSince > 1) {
-      const updates = { streak: 0 };
-
-      // Mercy rule: drop from level 3+ back to level 2
-      if (stats.level > 2) {
-        updates.level = 2;
-      }
-
-      await db.stats.update(1, updates);
-    }
-
-    return db.stats.get(1);
-  },
-
-  // Record activity (check-in or task completion)
-  async record(xpAmount) {
-    const stats = await db.stats.get(1);
-    if (!stats) return;
-
-    const today = new Date();
-    const isNewDay = this.daysBetween(stats.lastActiveDate, today) >= 1;
-
-    let newStreak = stats.streak;
-    if (isNewDay) newStreak += 1;
-
-    let newXp = stats.xp + xpAmount;
-    let newLevel = stats.level;
-
-    // Level up checks
-    if (newLevel === 1 && newStreak >= 1) newLevel = 2;
-    if (newLevel === 2 && newXp >= this.LEVEL_3_THRESHOLD) newLevel = 3;
-
-    await db.stats.update(1, {
-      xp: newXp,
-      level: newLevel,
-      streak: newStreak,
-      lastActiveDate: today
-    });
-
-    return db.stats.get(1);
-  },
-
-  // Helpers
-  daysBetween(date1, date2) {
-    const d1 = new Date(date1).setHours(0, 0, 0, 0);
-    const d2 = new Date(date2).setHours(0, 0, 0, 0);
-    return Math.floor((d2 - d1) / (1000 * 60 * 60 * 24));
-  },
-
-  yesterday() {
-    const d = new Date();
-    d.setDate(d.getDate() - 1);
-    return d;
-  },
-
-  isToday(date) {
-    return this.daysBetween(date, new Date()) === 0;
   }
 };
 
@@ -115,143 +43,305 @@ const XP = {
 // =============================================================================
 
 const app = document.getElementById('app');
-let currentStats = null;
 
 async function init() {
-  currentStats = await XP.init();
+  await State.init();
   render();
 }
 
 function render() {
-  if (!currentStats) return;
-
-  app.classList.add('fade-out');
-
-  setTimeout(() => {
-    if (currentStats.level === 1) {
-      renderLevelOne();
-    } else {
-      renderLevelTwo();
-    }
-    app.classList.remove('fade-out');
-  }, 200);
-}
-
-// =============================================================================
-// LEVEL 1: THE BUTTON
-// =============================================================================
-
-function renderLevelOne() {
-  const doneToday = XP.isToday(currentStats.lastActiveDate) && currentStats.streak > 0;
-
-  if (doneToday) {
-    app.innerHTML = `
-      <div class="success-view">
-        <div class="success-icon">🔥</div>
-        <h1 class="success-title">System Online.</h1>
-        <p class="success-streak">Streak: ${currentStats.streak} Day${currentStats.streak > 1 ? 's' : ''}</p>
-        <p class="success-hint">Come back tomorrow to unlock Level 2.</p>
-      </div>
-    `;
-  } else {
-    app.innerHTML = `
-      <div class="button-view">
-        <button class="initiate-btn" id="initiate-btn">
-          <span class="btn-text">INITIATE</span>
-          <span class="btn-glow"></span>
-        </button>
-      </div>
-    `;
-
-    document.getElementById('initiate-btn').addEventListener('click', async () => {
-      const btn = document.getElementById('initiate-btn');
-      btn.classList.add('pressed');
-
-      currentStats = await XP.record(XP.CHECKIN_XP);
-
-      setTimeout(render, 400);
-    });
+  // Show settings if no API key
+  if (!State.hasApiKey) {
+    renderSetup();
+    return;
   }
+
+  // Show current focus if exists
+  if (State.currentFocus) {
+    renderFocus();
+    return;
+  }
+
+  // Show brain dump input
+  renderBrainDump();
 }
 
 // =============================================================================
-// LEVEL 2: SINGULARITY (One Task)
+// SETUP SCREEN
 // =============================================================================
 
-async function renderLevelTwo() {
-  const activeTasks = await db.tasks.where('status').equals('active').toArray();
-  const hasActiveTask = activeTasks.length > 0;
-
+function renderSetup() {
   app.innerHTML = `
-    <div class="singularity-view">
-      <header class="stats-bar">
-        <span class="stat">Level ${currentStats.level}</span>
-        <span class="stat">${currentStats.xp} XP</span>
-        <span class="stat">🔥 ${currentStats.streak}</span>
-      </header>
+    <div class="setup-view">
+      <div class="setup-content">
+        <h1 class="setup-title">Focus</h1>
+        <p class="setup-desc">AI-powered clarity for scattered minds.</p>
 
-      <form class="task-input-form" id="task-form">
-        <input
-          type="text"
-          id="task-input"
-          placeholder="${hasActiveTask ? 'Complete current objective.' : 'One Objective.'}"
-          ${hasActiveTask ? 'disabled' : ''}
-          autocomplete="off"
-        >
-      </form>
-
-      <div class="task-area" id="task-area">
-        ${hasActiveTask ? '' : '<div class="empty-state">Waiting for input...</div>'}
+        <form class="setup-form" id="setup-form">
+          <label class="setup-label">Gemini API Key</label>
+          <input
+            type="password"
+            id="api-key-input"
+            class="setup-input"
+            placeholder="AIza..."
+            autocomplete="off"
+          >
+          <p class="setup-hint">
+            Get one free at <a href="https://aistudio.google.com/apikey" target="_blank">aistudio.google.com</a>
+          </p>
+          <button type="submit" class="setup-btn">Connect</button>
+        </form>
       </div>
     </div>
   `;
 
-  // Render active task card
-  if (hasActiveTask) {
-    renderTaskCard(activeTasks[0]);
-  }
-
-  // Form handler
-  document.getElementById('task-form').addEventListener('submit', async (e) => {
+  document.getElementById('setup-form').addEventListener('submit', async (e) => {
     e.preventDefault();
-    if (hasActiveTask) return;
+    const key = document.getElementById('api-key-input').value.trim();
+    if (!key) return;
 
-    const input = document.getElementById('task-input');
-    const title = input.value.trim();
-    if (!title) return;
-
-    await db.tasks.add({
-      title,
-      status: 'active',
-      createdAt: new Date()
-    });
-
-    renderLevelTwo();
+    await AI.setApiKey(key);
+    State.hasApiKey = true;
+    render();
   });
 }
 
-function renderTaskCard(task) {
-  const area = document.getElementById('task-area');
+// =============================================================================
+// BRAIN DUMP SCREEN
+// =============================================================================
 
-  area.innerHTML = `
-    <div class="task-card" id="task-card">
-      <h2 class="task-title">${escapeHtml(task.title)}</h2>
-      <div class="task-action">TAP TO COMPLETE</div>
+function renderBrainDump() {
+  app.innerHTML = `
+    <div class="dump-view">
+      <header class="header">
+        <div class="stats">
+          <span class="stat-item">${State.stats.completed} done</span>
+          <span class="stat-item">🔥 ${State.stats.streak}</span>
+        </div>
+        <button class="settings-btn" id="settings-btn">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          </svg>
+        </button>
+      </header>
+
+      <main class="dump-main">
+        <h1 class="dump-prompt">What's on your mind?</h1>
+        <p class="dump-hint">Dump it all. I'll find your one thing.</p>
+
+        <form class="dump-form" id="dump-form">
+          <textarea
+            id="dump-input"
+            class="dump-input"
+            placeholder="I need to... I'm stressed about... I can't stop thinking about..."
+            rows="4"
+          ></textarea>
+          <button type="submit" class="dump-btn" id="dump-btn">
+            <span class="btn-text">Find my focus</span>
+          </button>
+        </form>
+      </main>
     </div>
   `;
 
-  document.getElementById('task-card').addEventListener('click', async () => {
-    const card = document.getElementById('task-card');
-    card.classList.add('completing');
+  // Settings button
+  document.getElementById('settings-btn').addEventListener('click', renderSettings);
 
-    await db.tasks.update(task.id, {
-      status: 'completed',
-      completedAt: new Date()
+  // Brain dump form
+  document.getElementById('dump-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const input = document.getElementById('dump-input');
+    const text = input.value.trim();
+    if (!text || State.isLoading) return;
+
+    await processBrainDump(text);
+  });
+
+  // Auto-focus
+  document.getElementById('dump-input').focus();
+}
+
+async function processBrainDump(text) {
+  State.isLoading = true;
+
+  const btn = document.getElementById('dump-btn');
+  btn.classList.add('loading');
+  btn.innerHTML = '<span class="btn-text">Thinking...</span>';
+
+  try {
+    const aiResponse = await AI.extractMicroFocus(text);
+
+    // Store the focus
+    await db.focus.put({
+      id: 'current',
+      originalDump: text,
+      aiResponse: aiResponse,
+      createdAt: new Date()
     });
 
-    currentStats = await XP.record(XP.TASK_XP);
+    State.currentFocus = await db.focus.get('current');
+    State.isLoading = false;
+    render();
+  } catch (error) {
+    State.isLoading = false;
+    btn.classList.remove('loading');
+    btn.innerHTML = '<span class="btn-text">Find my focus</span>';
 
-    setTimeout(renderLevelTwo, 500);
+    // Show error
+    showError(error.message);
+  }
+}
+
+// =============================================================================
+// FOCUS SCREEN
+// =============================================================================
+
+function renderFocus() {
+  app.innerHTML = `
+    <div class="focus-view">
+      <header class="header">
+        <button class="back-btn" id="back-btn">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M19 12H5M12 19l-7-7 7-7"/>
+          </svg>
+        </button>
+        <div class="stats">
+          <span class="stat-item">${State.stats.completed} done</span>
+          <span class="stat-item">🔥 ${State.stats.streak}</span>
+        </div>
+      </header>
+
+      <main class="focus-main">
+        <div class="ai-response" id="ai-response">
+          ${formatAIResponse(State.currentFocus.aiResponse)}
+        </div>
+
+        <button class="complete-btn" id="complete-btn">
+          <span class="btn-text">Done - What's next?</span>
+        </button>
+
+        <button class="skip-btn" id="skip-btn">This doesn't feel right</button>
+      </main>
+    </div>
+  `;
+
+  // Back button - abandon focus
+  document.getElementById('back-btn').addEventListener('click', async () => {
+    await db.focus.delete('current');
+    State.currentFocus = null;
+    render();
+  });
+
+  // Complete button
+  document.getElementById('complete-btn').addEventListener('click', async () => {
+    // Update stats
+    const today = new Date().toDateString();
+    const isNewDay = State.stats.lastDate !== today;
+    const wasYesterday = State.stats.lastDate === getYesterday();
+
+    const newStreak = isNewDay ? (wasYesterday ? State.stats.streak + 1 : 1) : State.stats.streak;
+
+    await db.stats.update(1, {
+      completed: State.stats.completed + 1,
+      streak: newStreak,
+      lastDate: today
+    });
+
+    // Clear focus
+    await db.focus.delete('current');
+
+    // Refresh state
+    State.currentFocus = null;
+    State.stats = await db.stats.get(1);
+
+    // Back to brain dump
+    render();
+  });
+
+  // Skip button - try again
+  document.getElementById('skip-btn').addEventListener('click', async () => {
+    await db.focus.delete('current');
+    State.currentFocus = null;
+    render();
+  });
+}
+
+function formatAIResponse(text) {
+  // Simple markdown-ish formatting
+  return text
+    .split('\n')
+    .map(line => {
+      if (line.startsWith('Your focus:')) {
+        return `<p class="focus-line">${escapeHtml(line)}</p>`;
+      }
+      return `<p>${escapeHtml(line)}</p>`;
+    })
+    .join('');
+}
+
+// =============================================================================
+// SETTINGS
+// =============================================================================
+
+function renderSettings() {
+  app.innerHTML = `
+    <div class="settings-view">
+      <header class="header">
+        <button class="back-btn" id="back-btn">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M19 12H5M12 19l-7-7 7-7"/>
+          </svg>
+        </button>
+        <h1 class="header-title">Settings</h1>
+      </header>
+
+      <main class="settings-main">
+        <div class="setting-group">
+          <label class="setting-label">Gemini API Key</label>
+          <input
+            type="password"
+            id="api-key-input"
+            class="setting-input"
+            placeholder="AIza..."
+            value="••••••••••••"
+          >
+          <button class="setting-btn" id="save-key-btn">Update Key</button>
+        </div>
+
+        <div class="setting-group">
+          <button class="danger-btn" id="clear-key-btn">Remove API Key</button>
+        </div>
+
+        <div class="setting-group">
+          <h3 class="setting-section">Data</h3>
+          <button class="danger-btn" id="clear-data-btn">Clear All Data</button>
+        </div>
+      </main>
+    </div>
+  `;
+
+  document.getElementById('back-btn').addEventListener('click', render);
+
+  document.getElementById('save-key-btn').addEventListener('click', async () => {
+    const key = document.getElementById('api-key-input').value.trim();
+    if (key && !key.includes('•')) {
+      await AI.setApiKey(key);
+      showToast('API key updated');
+    }
+  });
+
+  document.getElementById('clear-key-btn').addEventListener('click', async () => {
+    await AI.clearApiKey();
+    State.hasApiKey = false;
+    render();
+  });
+
+  document.getElementById('clear-data-btn').addEventListener('click', async () => {
+    if (confirm('Clear all Focus data? This cannot be undone.')) {
+      await db.delete();
+      location.reload();
+    }
   });
 }
 
@@ -263,6 +353,36 @@ function escapeHtml(str) {
   const div = document.createElement('div');
   div.textContent = str;
   return div.innerHTML;
+}
+
+function getYesterday() {
+  const d = new Date();
+  d.setDate(d.getDate() - 1);
+  return d.toDateString();
+}
+
+function showError(message) {
+  const existing = document.querySelector('.error-toast');
+  if (existing) existing.remove();
+
+  const toast = document.createElement('div');
+  toast.className = 'error-toast';
+  toast.textContent = message;
+  document.body.appendChild(toast);
+
+  setTimeout(() => toast.remove(), 4000);
+}
+
+function showToast(message) {
+  const existing = document.querySelector('.toast');
+  if (existing) existing.remove();
+
+  const toast = document.createElement('div');
+  toast.className = 'toast';
+  toast.textContent = message;
+  document.body.appendChild(toast);
+
+  setTimeout(() => toast.remove(), 2000);
 }
 
 // =============================================================================
