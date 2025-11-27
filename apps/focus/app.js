@@ -415,4 +415,7 @@ function showToast(message) {
 // INIT
 // =============================================================================
 
+// Expose for debugging
+window.FocusDebug = { State, db, AI };
+
 init();
