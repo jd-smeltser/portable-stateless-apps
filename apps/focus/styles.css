@@ -292,6 +292,27 @@ a:hover {
   cursor: wait;
 }
 
+.inline-error {
+  margin-top: 16px;
+  padding: 16px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid var(--danger);
+  border-radius: 12px;
+  animation: slideUp 0.3s ease;
+}
+
+.inline-error .error-title {
+  font-weight: 600;
+  color: var(--danger);
+  margin-bottom: 4px;
+}
+
+.inline-error .error-message {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  word-break: break-word;
+}
+
 /* =============================================================================
    FOCUS VIEW
    ============================================================================= */

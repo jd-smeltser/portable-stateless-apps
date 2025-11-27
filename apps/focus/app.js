@@ -174,11 +174,20 @@ async function processBrainDump(text) {
   State.isLoading = true;
 
   const btn = document.getElementById('dump-btn');
+  const form = document.getElementById('dump-form');
   btn.classList.add('loading');
   btn.innerHTML = '<span class="btn-text">Thinking...</span>';
 
+  // Remove any existing error
+  document.querySelector('.inline-error')?.remove();
+
   try {
     const aiResponse = await AI.extractMicroFocus(text);
+
+    // Validate we got something
+    if (!aiResponse || aiResponse.trim().length === 0) {
+      throw new Error('AI returned empty response. Try again or check your API key.');
+    }
 
     // Store the focus
     await db.focus.put({
@@ -196,8 +205,17 @@ async function processBrainDump(text) {
     btn.classList.remove('loading');
     btn.innerHTML = '<span class="btn-text">Find my focus</span>';
 
-    // Show error
-    showError(error.message);
+    // Show inline error (more visible than toast)
+    const errorDiv = document.createElement('div');
+    errorDiv.className = 'inline-error';
+    errorDiv.innerHTML = `
+      <p class="error-title">Something went wrong</p>
+      <p class="error-message">${escapeHtml(error.message)}</p>
+    `;
+    form.appendChild(errorDiv);
+
+    // Also log to console for debugging
+    console.error('Focus AI Error:', error);
   }
 }
 
