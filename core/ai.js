@@ -74,7 +74,10 @@ export const AI = {
           }],
           generationConfig: {
             temperature: options.temperature ?? 0.7,
-            maxOutputTokens: options.maxTokens ?? 1024
+            maxOutputTokens: options.maxTokens ?? 1024,
+            thinkingConfig: {
+              thinkingBudget: 0
+            }
           }
         })
       });
@@ -136,7 +139,7 @@ User's brain dump:
     return this.call(prompt, {
       model: this.MODELS.FLASH,
       temperature: 0.7,
-      maxTokens: 512
+      maxTokens: 2048
     });
   },
 
