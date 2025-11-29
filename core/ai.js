@@ -134,9 +134,9 @@ User's brain dump:
 "${brainDump}"`;
 
     return this.call(prompt, {
-      model: this.MODELS.PRO,
+      model: this.MODELS.FLASH,
       temperature: 0.7,
-      maxTokens: 1024
+      maxTokens: 512
     });
   },
 
