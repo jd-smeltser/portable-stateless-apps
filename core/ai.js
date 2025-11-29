@@ -14,8 +14,9 @@ aiDb.version(1).stores({
 
 export const AI = {
   MODELS: {
-    PRO: 'gemini-2.5-pro',
-    FLASH: 'gemini-2.5-flash',
+    PRO: 'gemini-3-pro-preview',
+    FLASH: 'gemini-3-flash-preview',
+    FLASH_2: 'gemini-2.5-flash',
     LITE: 'gemini-2.5-flash-lite'
   },
 
@@ -74,10 +75,7 @@ export const AI = {
           }],
           generationConfig: {
             temperature: options.temperature ?? 0.7,
-            maxOutputTokens: options.maxTokens ?? 1024,
-            thinkingConfig: {
-              thinkingBudget: 0
-            }
+            maxOutputTokens: options.maxTokens ?? 1024
           }
         })
       });
