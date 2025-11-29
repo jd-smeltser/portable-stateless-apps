@@ -136,7 +136,7 @@ User's brain dump:
     return this.call(prompt, {
       model: this.MODELS.PRO,
       temperature: 0.7,
-      maxTokens: 150
+      maxTokens: 1024
     });
   },
 
