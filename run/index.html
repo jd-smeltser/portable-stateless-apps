@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#0a0a0a">
+  <title>Loading App...</title>
+  <style>
+    :root {
+      --bg: #0a0a0a;
+      --text: #e5e5e5;
+      --text-muted: #737373;
+      --accent: #3b82f6;
+      --danger: #ef4444;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif;
+    }
+
+    .loading, .error {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      text-align: center;
+      padding: 24px;
+    }
+
+    .loading-spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid var(--text-muted);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-bottom: 16px;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .error-icon {
+      font-size: 3rem;
+      margin-bottom: 16px;
+    }
+
+    .error h1 {
+      font-size: 1.25rem;
+      margin-bottom: 8px;
+    }
+
+    .error p {
+      color: var(--text-muted);
+      margin-bottom: 24px;
+    }
+
+    .error a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    .error a:hover {
+      text-decoration: underline;
+    }
+
+    /* App frame fills the viewport */
+    #app-frame {
+      position: fixed;
+      inset: 0;
+      border: none;
+      width: 100%;
+      height: 100%;
+    }
+  </style>
+</head>
+<body>
+  <div id="loading" class="loading">
+    <div class="loading-spinner"></div>
+    <p>Loading app...</p>
+  </div>
+
+  <div id="error" class="error" style="display: none;">
+    <div class="error-icon">😕</div>
+    <h1>App Not Found</h1>
+    <p id="error-message">The requested app could not be loaded.</p>
+    <a href="/">Go Home</a> · <a href="/installer/">Install Apps</a>
+  </div>
+
+  <script type="module">
+    import Catalog from '../core/catalog.js';
+
+    const loadingEl = document.getElementById('loading');
+    const errorEl = document.getElementById('error');
+    const errorMessage = document.getElementById('error-message');
+
+    function showError(message) {
+      loadingEl.style.display = 'none';
+      errorEl.style.display = 'flex';
+      errorMessage.textContent = message;
+    }
+
+    async function loadApp() {
+      const params = new URLSearchParams(window.location.search);
+      const appId = params.get('app');
+
+      if (!appId) {
+        showError('No app specified. Use ?app=app-id');
+        return;
+      }
+
+      const bundle = Catalog.getInstalledApp(appId);
+
+      if (!bundle) {
+        showError(`App "${appId}" is not installed.`);
+        return;
+      }
+
+      // Update page title
+      document.title = bundle.manifest.name;
+
+      // Create iframe with app HTML
+      // We use srcdoc to load the HTML directly
+      const iframe = document.createElement('iframe');
+      iframe.id = 'app-frame';
+
+      // Inject the HTML into the iframe
+      // Note: The app HTML should be self-contained but can import from /core/
+      iframe.srcdoc = bundle.html;
+
+      // Handle hash forwarding (for record links)
+      if (window.location.hash) {
+        // Append hash to iframe after load
+        iframe.onload = () => {
+          try {
+            iframe.contentWindow.location.hash = window.location.hash;
+          } catch (e) {
+            // Cross-origin restrictions may prevent this
+          }
+        };
+      }
+
+      // Handle ?create= parameter forwarding
+      const createParam = params.get('create');
+      if (createParam) {
+        iframe.onload = () => {
+          try {
+            // Try to call the app's create function via postMessage or URL
+            const url = new URL(iframe.contentWindow.location.href);
+            url.searchParams.set('create', createParam);
+            iframe.contentWindow.history.replaceState(null, '', url.toString());
+            // Dispatch a custom event the app can listen for
+            iframe.contentWindow.dispatchEvent(new CustomEvent('app-create', {
+              detail: { title: createParam }
+            }));
+          } catch (e) {
+            console.warn('Could not forward create param:', e);
+          }
+        };
+      }
+
+      // Hide loading, show app
+      loadingEl.style.display = 'none';
+      document.body.appendChild(iframe);
+    }
+
+    loadApp();
+  </script>
+</body>
+</html>

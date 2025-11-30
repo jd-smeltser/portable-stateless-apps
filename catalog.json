@@ -1,0 +1,82 @@
+{
+  "version": 1,
+  "updated": "2024-11-29",
+  "apps": {
+    "notes": {
+      "name": "Notes",
+      "description": "Rich notes with linking, images, and templates",
+      "path": "/apps/note/",
+      "version": "1.0.0",
+      "icon": "📝",
+      "records": {
+        "creates": ["note", "template"],
+        "opens": ["note", "template", "task", "event", "asset"]
+      }
+    },
+    "tasks": {
+      "name": "Tasks",
+      "description": "Task management with cross-linking",
+      "path": "/apps/tasks/",
+      "version": "1.0.0",
+      "icon": "☑️",
+      "records": {
+        "creates": ["task", "template"],
+        "opens": ["task", "template", "note", "event"]
+      }
+    },
+    "calendar": {
+      "name": "Calendar",
+      "description": "Time blocking and event scheduling",
+      "path": "/apps/calendar/",
+      "version": "1.0.0",
+      "icon": "📅",
+      "records": {
+        "creates": ["event"],
+        "opens": ["event", "note", "task"]
+      }
+    },
+    "assets": {
+      "name": "Asset Manager",
+      "description": "Manage images and files",
+      "path": "/apps/assets/",
+      "version": "1.0.0",
+      "icon": "🖼️",
+      "records": {
+        "creates": ["asset"],
+        "opens": ["asset"]
+      }
+    }
+  },
+  "recordTypes": {
+    "note": {
+      "name": "Note",
+      "icon": "📝",
+      "schema": { "t": "string", "b": "string", "ts": "number" },
+      "primaryApp": "notes"
+    },
+    "task": {
+      "name": "Task",
+      "icon": "☑️",
+      "schema": { "t": "string", "b": "string", "done": "boolean", "ts": "number" },
+      "primaryApp": "tasks"
+    },
+    "event": {
+      "name": "Event",
+      "icon": "📅",
+      "schema": { "t": "string", "b": "string", "start": "number", "duration": "number", "ts": "number" },
+      "primaryApp": "calendar"
+    },
+    "asset": {
+      "name": "Asset",
+      "icon": "🖼️",
+      "schema": "base64",
+      "primaryApp": "assets"
+    },
+    "template": {
+      "name": "Template",
+      "icon": "📄",
+      "schema": "varies",
+      "primaryApp": null
+    }
+  }
+}

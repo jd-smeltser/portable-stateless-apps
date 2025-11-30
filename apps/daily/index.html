@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#0a0a0a">
+  <title>Daily</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="app">
+    <!-- Header with date navigation -->
+    <header class="header">
+      <button class="nav-btn" id="prev-day" aria-label="Previous day">←</button>
+      <h1 class="date-display" id="date-display">Today</h1>
+      <button class="nav-btn" id="next-day" aria-label="Next day">→</button>
+    </header>
+
+    <!-- Quick capture -->
+    <section class="capture">
+      <input
+        type="text"
+        id="capture-input"
+        class="capture-input"
+        placeholder="What's on your mind?"
+        autocomplete="off"
+        autocorrect="on"
+      >
+    </section>
+
+    <!-- NOW slot -->
+    <section class="now-section" id="now-section">
+      <div class="section-header">
+        <span class="section-label">NOW</span>
+        <button class="timer-btn" id="timer-btn">25:00 ▶</button>
+      </div>
+      <div class="now-task" id="now-task">
+        <!-- Populated by JS -->
+      </div>
+    </section>
+
+    <!-- Up next -->
+    <section class="tasks-section" id="tasks-section">
+      <div class="section-header">
+        <span class="section-label">UP NEXT</span>
+      </div>
+      <ul class="task-list" id="task-list">
+        <!-- Populated by JS -->
+      </ul>
+    </section>
+
+    <!-- Done section -->
+    <section class="done-section" id="done-section">
+      <button class="section-header done-header" id="done-toggle">
+        <span class="section-label">DONE · <span id="done-count">0</span></span>
+        <span class="toggle-icon" id="done-icon">↓</span>
+      </button>
+      <ul class="task-list done-list" id="done-list">
+        <!-- Populated by JS -->
+      </ul>
+    </section>
+
+    <!-- Brain dump FAB -->
+    <button class="fab" id="brain-dump-btn">
+      🧠 Brain Dump
+    </button>
+
+    <!-- Editor Modal -->
+    <div class="editor-modal" id="editor-modal">
+      <div class="editor-container">
+        <div class="editor-header">
+          <button class="editor-close" id="editor-close">×</button>
+          <button class="editor-save" id="editor-save">Save</button>
+        </div>
+        <input
+          type="text"
+          class="editor-title"
+          id="editor-title"
+          placeholder="Task title"
+          autocomplete="off"
+        >
+        <textarea
+          class="editor-notes"
+          id="editor-notes"
+          placeholder="Add notes..."
+        ></textarea>
+        <div class="editor-hint">⌘+Enter to save · Esc to close</div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/dexie@3/dist/dexie.min.js"></script>
+  <script type="module" src="app.js"></script>
+</body>
+</html>

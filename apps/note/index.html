@@ -1,0 +1,1257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#0a0a0a">
+  <title>Notes</title>
+  <style>
+    :root {
+      --bg: #0a0a0a;
+      --surface: #141414;
+      --border: #262626;
+      --border-light: #333;
+      --text: #e5e5e5;
+      --text-muted: #737373;
+      --accent: #3b82f6;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    #app {
+      display: flex;
+      height: 100%;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    /* Sidebar */
+    .sidebar {
+      width: 260px;
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+    }
+
+    .sidebar-header {
+      padding: 16px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .logo {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .new-btn {
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 1.25rem;
+      cursor: pointer;
+    }
+
+    .new-btn:hover { background: var(--border); }
+
+    .notes-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px;
+    }
+
+    .note-item {
+      padding: 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      margin-bottom: 4px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 8px;
+    }
+
+    .note-item:hover { background: var(--surface); }
+    .note-item.active { background: var(--surface); border: 1px solid var(--border); }
+
+    .note-item-content { flex: 1; min-width: 0; }
+
+    .note-item-title {
+      font-size: 0.9rem;
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .note-item-preview {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-top: 2px;
+    }
+
+    .note-item-delete {
+      opacity: 0;
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      padding: 4px;
+      font-size: 1rem;
+    }
+
+    .note-item:hover .note-item-delete { opacity: 1; }
+    .note-item-delete:hover { color: #ef4444; }
+
+    .section-label {
+      font-size: 0.65rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 12px 12px 6px;
+      margin-top: 8px;
+    }
+
+    .section-label:first-child { margin-top: 0; }
+    .template-item { border-left: 2px solid var(--accent); }
+
+    /* Editor */
+    .editor {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 16px 24px;
+      padding-top: calc(env(safe-area-inset-top) + 16px);
+      min-width: 0;
+    }
+
+    .editor-header {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-bottom: 16px;
+      flex-shrink: 0;
+    }
+
+    .btn {
+      padding: 8px 14px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 0.8rem;
+      cursor: pointer;
+    }
+
+    .btn:hover { background: var(--border); }
+    .btn.primary { background: var(--accent); border-color: var(--accent); color: white; }
+
+    #title {
+      width: 100%;
+      padding: 8px 0;
+      background: transparent;
+      border: none;
+      color: var(--text);
+      font-size: 1.75rem;
+      font-weight: 600;
+      font-family: inherit;
+      outline: none;
+    }
+
+    #title::placeholder { color: var(--text-muted); }
+
+    #body {
+      flex: 1;
+      width: 100%;
+      padding: 12px 0;
+      background: transparent;
+      border: none;
+      color: var(--text);
+      font-size: 1rem;
+      font-family: inherit;
+      line-height: 1.75;
+      resize: none;
+      outline: none;
+    }
+
+    #body::placeholder { color: var(--text-muted); }
+    #body:empty::before {
+      content: attr(data-placeholder);
+      color: var(--text-muted);
+    }
+
+    /* Inline links in body */
+    .inline-link {
+      color: var(--accent);
+      cursor: pointer;
+      text-decoration: none;
+      border-bottom: 1px dotted var(--accent);
+    }
+    .inline-link:hover {
+      border-bottom-style: solid;
+    }
+    .inline-link.broken {
+      color: #ef4444;
+      border-color: #ef4444;
+    }
+
+    /* Inline images in body */
+    .inline-image {
+      display: block;
+      max-width: 100%;
+      max-height: 400px;
+      margin: 12px 0;
+      border-radius: 8px;
+      cursor: pointer;
+      border: 1px solid var(--border);
+    }
+    .inline-image:hover {
+      border-color: var(--accent);
+    }
+    .inline-image.broken {
+      display: inline-block;
+      padding: 20px;
+      background: var(--surface);
+      color: var(--text-muted);
+      font-size: 0.8rem;
+    }
+
+    /* Image upload button */
+    .img-btn {
+      padding: 8px 12px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 0.9rem;
+      cursor: pointer;
+    }
+    .img-btn:hover { background: var(--border); }
+
+    /* Links panel */
+    .links-panel {
+      border-top: 1px solid var(--border);
+      padding-top: 16px;
+      margin-top: 16px;
+    }
+
+    .links-panel.empty { display: none; }
+
+    .links-label {
+      font-size: 0.7rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 8px;
+    }
+
+    .links-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .link-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 10px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 0.8rem;
+      color: var(--text);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .link-chip:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .link-chip-icon { font-size: 0.9rem; }
+
+    /* Linked from section */
+    .backlinks { margin-top: 12px; }
+
+    .backlinks .links-label { color: var(--text-muted); opacity: 0.7; }
+
+    /* Status toast */
+    .status {
+      position: fixed;
+      bottom: calc(env(safe-area-inset-bottom) + 16px);
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 10px 20px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 100px;
+      font-size: 0.8rem;
+      opacity: 0;
+      transition: opacity 0.2s;
+      pointer-events: none;
+      z-index: 500;
+    }
+
+    .status.visible { opacity: 1; }
+
+    /* Mobile */
+    @media (max-width: 640px) {
+      .sidebar {
+        position: fixed;
+        left: 0; top: 0; bottom: 0;
+        width: 280px;
+        background: var(--bg);
+        z-index: 100;
+        transform: translateX(-100%);
+        transition: transform 0.2s;
+      }
+      .sidebar.open { transform: translateX(0); }
+      .sidebar-backdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.5);
+        z-index: 99;
+        opacity: 0;
+        visibility: hidden;
+        transition: all 0.2s;
+      }
+      .sidebar-backdrop.visible { opacity: 1; visibility: visible; }
+      .editor { padding: 16px; }
+      .mobile-menu-btn { display: flex; }
+    }
+
+    @media (min-width: 641px) {
+      .mobile-menu-btn, .sidebar-backdrop { display: none; }
+    }
+
+    .mobile-menu-btn {
+      width: 36px;
+      height: 36px;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 1.1rem;
+      cursor: pointer;
+    }
+
+    .empty-state {
+      padding: 24px 16px;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.875rem;
+    }
+
+    /* Hint text */
+    .hint {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-top: 8px;
+      opacity: 0.7;
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <div class="sidebar-backdrop" id="backdrop"></div>
+
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <span class="logo">Notes</span>
+        <button class="new-btn" id="new-btn" title="New note">+</button>
+      </div>
+      <div class="notes-list" id="notes-list"></div>
+    </aside>
+
+    <main class="editor">
+      <div class="editor-header">
+        <button class="btn mobile-menu-btn" id="menu-btn">☰</button>
+        <div style="flex:1"></div>
+        <button class="img-btn" id="img-btn" title="Add image">📷</button>
+        <input type="file" id="img-input" accept="image/*" style="display:none">
+        <button class="btn" id="import-btn" title="Import note bundle">Import</button>
+        <button class="btn" id="export-btn" title="Export with images">Export</button>
+        <button class="btn" id="template-btn">Template</button>
+        <button class="btn" id="share-btn">Share</button>
+        <button class="btn primary" id="copy-btn">Copy Link</button>
+      </div>
+
+      <input type="text" id="title" placeholder="Title" autocomplete="off" spellcheck="true">
+      <div id="body" contenteditable="true" data-placeholder="Start writing... (use @ to link)"></div>
+      <div class="hint">Type @ to link to tasks, notes, or projects</div>
+
+      <!-- Links panel -->
+      <div class="links-panel empty" id="links-panel">
+        <div id="outgoing-links">
+          <div class="links-label">LINKS TO</div>
+          <div class="links-list" id="outgoing-list"></div>
+        </div>
+        <div class="backlinks" id="incoming-links">
+          <div class="links-label">LINKED FROM</div>
+          <div class="links-list" id="incoming-list"></div>
+        </div>
+      </div>
+    </main>
+
+    <div class="status" id="status"></div>
+  </div>
+
+  <script src="https://unpkg.com/lz-string@1.5.0/libs/lz-string.min.js"></script>
+  <script type="module">
+    import Registry from '../../core/registry.js';
+    import Linker from '../../core/linker.js';
+    import Assets from '../../core/assets.js';
+    import Omnibar from '../../core/omnibar.js';
+
+    // ============================================
+    // State
+    // ============================================
+
+    let currentRecordId = null;
+
+    // ============================================
+    // Elements
+    // ============================================
+
+    const titleEl = document.getElementById('title');
+    const bodyEl = document.getElementById('body');
+    const statusEl = document.getElementById('status');
+    const notesListEl = document.getElementById('notes-list');
+    const sidebarEl = document.getElementById('sidebar');
+    const backdropEl = document.getElementById('backdrop');
+    const linksPanel = document.getElementById('links-panel');
+    const outgoingList = document.getElementById('outgoing-list');
+    const incomingList = document.getElementById('incoming-list');
+    const outgoingSection = document.getElementById('outgoing-links');
+    const incomingSection = document.getElementById('incoming-links');
+
+    // ============================================
+    // URL Encoding
+    // ============================================
+
+    function encodeState(state) {
+      return LZString.compressToEncodedURIComponent(JSON.stringify(state));
+    }
+
+    function decodeState(hash) {
+      try {
+        return JSON.parse(LZString.decompressFromEncodedURIComponent(hash));
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function getStateFromURL(url) {
+      const hash = url.split('#')[1];
+      return hash ? decodeState(hash) : null;
+    }
+
+    function getCurrentURL() {
+      // Preserve existing timestamp or it will be set on create
+      const record = Registry.get(currentRecordId);
+      const ts = record?.meta?.ts || Date.now();
+
+      const state = { t: titleEl.value, b: getBodyRawText(), ts };
+      // Always include hash with timestamp, even for empty notes
+      return window.location.pathname + '#' + encodeState(state);
+    }
+
+    // ============================================
+    // Contenteditable Helpers
+    // ============================================
+
+    const LINK_REGEX = /@\[([^\]]+)\]\(([^)]+)\)/g;
+    const IMAGE_REGEX = /!\[([^\]]*)\]\(([^)]+)\)/g;
+
+    // Get raw text from contenteditable, converting rendered elements back to markdown-like syntax
+    function getBodyRawText() {
+      const clone = bodyEl.cloneNode(true);
+
+      // Convert inline-image elements back to ![alt](id)
+      clone.querySelectorAll('.inline-image').forEach(img => {
+        const alt = img.alt || '';
+        const id = img.dataset.assetId;
+        const text = document.createTextNode(`![${alt}](${id})`);
+        img.replaceWith(text);
+      });
+
+      // Convert inline-link spans back to @[Title](id)
+      clone.querySelectorAll('.inline-link').forEach(link => {
+        const title = link.textContent;
+        const id = link.dataset.linkId;
+        const text = document.createTextNode(`@[${title}](${id})`);
+        link.replaceWith(text);
+      });
+
+      // Convert <br> to newlines and get text
+      return clone.innerHTML
+        .replace(/<br\s*\/?>/gi, '\n')
+        .replace(/<div>/gi, '\n')
+        .replace(/<\/div>/gi, '')
+        .replace(/&nbsp;/g, ' ')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&amp;/g, '&')
+        .trim();
+    }
+
+    // Render text with links and images as interactive elements
+    function renderBodyContent(text) {
+      if (!text) {
+        bodyEl.innerHTML = '';
+        return;
+      }
+
+      let html = escapeHtml(text);
+
+      // Replace ![alt](id) with images - do this BEFORE links since both use similar syntax
+      html = html.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (match, alt, id) => {
+        const dataUrl = Assets.getDataUrl(id);
+        if (dataUrl) {
+          return `<img class="inline-image" src="${dataUrl}" alt="${escapeHtml(alt)}" data-asset-id="${id}" contenteditable="false">`;
+        } else {
+          return `<span class="inline-image broken" data-asset-id="${id}" contenteditable="false">Image not found</span>`;
+        }
+      });
+
+      // Replace @[Title](id) with clickable spans
+      html = html.replace(/@\[([^\]]+)\]\(([^)]+)\)/g, (match, title, id) => {
+        const record = Registry.get(id);
+        const exists = !!record;
+        const className = exists ? 'inline-link' : 'inline-link broken';
+        return `<span class="${className}" data-link-id="${id}" contenteditable="false">${escapeHtml(title)}</span>`;
+      });
+
+      // Convert newlines to <br>
+      html = html.replace(/\n/g, '<br>');
+
+      bodyEl.innerHTML = html;
+    }
+
+    // Set body content (for loading notes)
+    function setBodyContent(text) {
+      renderBodyContent(text);
+    }
+
+    // ============================================
+    // Image Handling
+    // ============================================
+
+    async function handleImageUpload(file) {
+      if (!file.type.startsWith('image/')) {
+        showStatus('Please select an image file');
+        return;
+      }
+
+      try {
+        showStatus('Uploading image...');
+        const asset = await Assets.createFromFile(file);
+
+        // Insert image reference at cursor or end
+        insertImageReference(asset.id, file.name);
+
+        showStatus('Image added!');
+      } catch (err) {
+        showStatus(err.message || 'Failed to upload image');
+      }
+    }
+
+    function insertImageReference(assetId, alt = '') {
+      const sel = window.getSelection();
+      if (!sel.rangeCount) {
+        // No selection, append to end
+        const br = document.createElement('br');
+        const img = createImageElement(assetId, alt);
+        bodyEl.appendChild(br);
+        bodyEl.appendChild(img);
+        bodyEl.appendChild(document.createElement('br'));
+      } else {
+        const range = sel.getRangeAt(0);
+        range.deleteContents();
+
+        const img = createImageElement(assetId, alt);
+        range.insertNode(document.createElement('br'));
+        range.insertNode(img);
+
+        // Move cursor after image
+        range.setStartAfter(img);
+        range.collapse(true);
+        sel.removeAllRanges();
+        sel.addRange(range);
+      }
+
+      // Trigger save
+      updateCurrentNote();
+    }
+
+    function createImageElement(assetId, alt = '') {
+      const dataUrl = Assets.getDataUrl(assetId);
+      const img = document.createElement('img');
+      img.className = 'inline-image';
+      img.src = dataUrl;
+      img.alt = alt;
+      img.dataset.assetId = assetId;
+      img.contentEditable = 'false';
+      return img;
+    }
+
+    // ============================================
+    // Note Operations
+    // ============================================
+
+    function createNote(title = '') {
+      const ts = Date.now();
+      const state = { t: title, b: '', ts };
+      const url = window.location.pathname + '#' + encodeState(state);
+      const record = Registry.add('note', url, { meta: { title: title || 'Untitled', ts } });
+      currentRecordId = record.id;
+      titleEl.value = title;
+      setBodyContent('');
+      history.replaceState(null, '', url);
+      renderNotesList();
+      renderLinks();
+      titleEl.focus();
+      closeSidebar();
+      updateLinkerContext();
+    }
+
+    function selectNote(id) {
+      const record = Registry.get(id);
+      if (!record) return;
+
+      currentRecordId = id;
+      const state = getStateFromURL(record.url);
+      titleEl.value = state?.t || '';
+      setBodyContent(state?.b || '');
+
+      const hash = record.url.split('#')[1];
+      history.replaceState(null, '', hash ? window.location.pathname + '#' + hash : window.location.pathname);
+
+      renderNotesList();
+      renderLinks();
+      closeSidebar();
+      updateLinkerContext();
+    }
+
+    function deleteNote(id, e) {
+      e.stopPropagation();
+      Registry.remove(id);
+      const notes = Registry.byType('note');
+      if (currentRecordId === id) {
+        notes.length > 0 ? selectNote(notes[0].id) : createNote();
+      } else {
+        renderNotesList();
+      }
+    }
+
+    function updateCurrentNote() {
+      if (!currentRecordId) return;
+
+      const url = getCurrentURL();
+      const title = titleEl.value || 'Untitled';
+      const record = Registry.get(currentRecordId);
+      const ts = record?.meta?.ts || Date.now();
+      const bodyText = getBodyRawText();
+
+      // Extract links from body text
+      const linkIds = Linker.extractLinkIds(bodyText);
+
+      Registry.update(currentRecordId, {
+        url,
+        links: linkIds,
+        meta: { title, preview: bodyText.slice(0, 100), ts }
+      });
+
+      history.replaceState(null, '', url);
+      renderNotesList();
+      renderLinks();
+    }
+
+    // ============================================
+    // Templates
+    // ============================================
+
+    function saveAsTemplate() {
+      const url = getCurrentURL();
+      if (url === window.location.pathname) {
+        showStatus('Write something first');
+        return;
+      }
+      const record = Registry.get(currentRecordId);
+      const ts = record?.meta?.ts || Date.now();
+      // Templates store sourceApp to know where to create new records
+      Registry.add('template', url, {
+        meta: { title: titleEl.value || 'Untitled Template', ts, sourceApp: 'note' }
+      });
+      renderNotesList();
+      showStatus('Template saved!');
+    }
+
+    function useTemplate(id) {
+      const template = Registry.get(id);
+      if (!template) return;
+
+      // Get template content but create new timestamp for the new note
+      const templateState = getStateFromURL(template.url);
+      const ts = Date.now();
+      const newState = { t: templateState?.t || '', b: templateState?.b || '', ts };
+      const url = window.location.pathname + '#' + encodeState(newState);
+
+      const record = Registry.add('note', url, { meta: { title: templateState?.t || 'Untitled', ts } });
+      currentRecordId = record.id;
+
+      titleEl.value = newState.t;
+      setBodyContent(newState.b);
+
+      history.replaceState(null, '', url);
+
+      renderNotesList();
+      renderLinks();
+      titleEl.focus();
+      closeSidebar();
+      updateLinkerContext();
+      showStatus('New note from template');
+    }
+
+    function deleteTemplate(id, e) {
+      e.stopPropagation();
+      Registry.remove(id);
+      renderNotesList();
+    }
+
+    // ============================================
+    // Links Panel
+    // ============================================
+
+    function renderLinks() {
+      if (!currentRecordId) {
+        linksPanel.classList.add('empty');
+        return;
+      }
+
+      const record = Registry.get(currentRecordId);
+      if (!record) {
+        linksPanel.classList.add('empty');
+        return;
+      }
+
+      // Outgoing links (this note links to)
+      const outgoing = (record.links || []).map(id => Registry.get(id)).filter(Boolean);
+
+      // Incoming links (other records link to this note)
+      const incoming = Registry.linkedTo(currentRecordId);
+
+      if (outgoing.length === 0 && incoming.length === 0) {
+        linksPanel.classList.add('empty');
+        return;
+      }
+
+      linksPanel.classList.remove('empty');
+
+      // Render outgoing
+      if (outgoing.length > 0) {
+        outgoingSection.style.display = 'block';
+        outgoingList.innerHTML = outgoing.map(r => renderLinkChip(r)).join('');
+      } else {
+        outgoingSection.style.display = 'none';
+      }
+
+      // Render incoming
+      if (incoming.length > 0) {
+        incomingSection.style.display = 'block';
+        incomingList.innerHTML = incoming.map(r => renderLinkChip(r)).join('');
+      } else {
+        incomingSection.style.display = 'none';
+      }
+    }
+
+    function renderLinkChip(record) {
+      const state = getStateFromURL(record.url);
+      const title = state?.t || state?.title || record.meta?.title || 'Untitled';
+      const icon = record.type === 'note' ? '📝' :
+                   record.type === 'task' ? '☑️' :
+                   record.type === 'template' ? '📄' :
+                   record.type === 'event' ? '📅' :
+                   record.type === 'project' ? '📁' : '📎';
+
+      return `
+        <span class="link-chip" data-link-id="${record.id}" data-type="${record.type}" data-source-app="${record.meta?.sourceApp || ''}">
+          <span class="link-chip-icon">${icon}</span>
+          ${escapeHtml(title)}
+        </span>
+      `;
+    }
+
+    function navigateToLink(id, type) {
+      const record = Registry.get(id);
+      if (!record) return;
+
+      if (type === 'template') {
+        // Templates spawn new records in their source app
+        const sourceApp = record.meta?.sourceApp || 'note';
+        if (sourceApp === 'note') {
+          useTemplate(id);
+        } else {
+          // Navigate to tasks app which will spawn the task
+          window.location.href = '../tasks/?spawn=' + id;
+        }
+      } else if (type === 'note') {
+        selectNote(id);
+      } else if (type === 'task' || type === 'project') {
+        const hash = record.url.split('#')[1];
+        window.location.href = '../tasks/' + (hash ? '#' + hash : '');
+      } else if (type === 'event') {
+        const hash = record.url.split('#')[1];
+        window.location.href = '../calendar/' + (hash ? '#' + hash : '');
+      }
+    }
+
+    // ============================================
+    // Rendering
+    // ============================================
+
+    function renderNotesList() {
+      // Only show note templates (sourceApp === 'note' or undefined for legacy)
+      const templates = Registry.byType('template').filter(t => !t.meta?.sourceApp || t.meta.sourceApp === 'note');
+      const notes = Registry.byType('note');
+      let html = '';
+
+      if (templates.length > 0) {
+        html += '<div class="section-label">TEMPLATES</div>';
+        html += templates.map(t => {
+          const state = getStateFromURL(t.url);
+          const title = state?.t || t.meta?.title || 'Untitled';
+          return `
+            <div class="note-item template-item" data-template="${t.id}">
+              <div class="note-item-content">
+                <div class="note-item-title">📄 ${escapeHtml(title)}</div>
+              </div>
+              <button class="note-item-delete" data-delete-template="${t.id}">×</button>
+            </div>
+          `;
+        }).join('');
+      }
+
+      if (notes.length > 0) {
+        if (templates.length > 0) html += '<div class="section-label">NOTES</div>';
+        html += notes.map(note => {
+          const state = getStateFromURL(note.url);
+          const title = state?.t || note.meta?.title || 'Untitled';
+          const preview = state?.b?.slice(0, 50) || '';
+          const isActive = note.id === currentRecordId;
+          const hasLinks = (note.links?.length > 0) || Registry.linkedTo(note.id).length > 0;
+
+          return `
+            <div class="note-item ${isActive ? 'active' : ''}" data-id="${note.id}">
+              <div class="note-item-content">
+                <div class="note-item-title">${hasLinks ? '🔗 ' : ''}${escapeHtml(title)}</div>
+                ${preview ? `<div class="note-item-preview">${escapeHtml(preview)}</div>` : ''}
+              </div>
+              <button class="note-item-delete" data-delete="${note.id}">×</button>
+            </div>
+          `;
+        }).join('');
+      }
+
+      if (!html) {
+        html = '<div class="empty-state">No notes yet.<br>Click + to create one.</div>';
+      }
+
+      notesListEl.innerHTML = html;
+    }
+
+    function escapeHtml(str) {
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
+    // ============================================
+    // @ Linker Setup
+    // ============================================
+
+    let linkerState = null;
+
+    function updateLinkerContext() {
+      if (linkerState) {
+        linkerState.options.recordId = currentRecordId;
+        linkerState.options.excludeId = currentRecordId;
+      }
+    }
+
+    // ============================================
+    // Actions
+    // ============================================
+
+    function copyLink() {
+      // Check if note has images
+      const bodyText = getBodyRawText();
+      const assetIds = Assets.extractAssetIds(bodyText);
+
+      navigator.clipboard.writeText(window.location.href)
+        .then(() => {
+          if (assetIds.length > 0) {
+            showStatus('Link copied (images not included - use Export)');
+          } else {
+            showStatus('Link copied!');
+          }
+        })
+        .catch(() => showStatus('Failed to copy'));
+    }
+
+    function shareNote() {
+      if (navigator.share) {
+        navigator.share({ title: titleEl.value || 'Untitled', url: window.location.href }).catch(() => {});
+      } else {
+        copyLink();
+      }
+    }
+
+    // Export note with all assets as downloadable bundle
+    function exportBundle() {
+      const bodyText = getBodyRawText();
+      const assetIds = Assets.extractAssetIds(bodyText);
+
+      // Build bundle
+      const bundle = {
+        version: 1,
+        type: 'note-bundle',
+        exported: new Date().toISOString(),
+        note: {
+          title: titleEl.value,
+          body: bodyText,
+          ts: Registry.get(currentRecordId)?.meta?.ts || Date.now()
+        },
+        assets: assetIds.map(id => {
+          const asset = Assets.get(id);
+          if (!asset) return null;
+          return {
+            id: asset.id,
+            data: asset.url.replace('asset://', ''),
+            meta: asset.meta
+          };
+        }).filter(Boolean)
+      };
+
+      // Download as file
+      const json = JSON.stringify(bundle);
+      const blob = new Blob([json], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${titleEl.value || 'note'}-${Date.now()}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+
+      showStatus(`Exported with ${bundle.assets.length} asset${bundle.assets.length !== 1 ? 's' : ''}`);
+    }
+
+    // Import note bundle
+    function importBundle() {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = '.json';
+      input.onchange = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        try {
+          const text = await file.text();
+          const bundle = JSON.parse(text);
+
+          if (bundle.type !== 'note-bundle') {
+            throw new Error('Not a note bundle');
+          }
+
+          // Import assets first
+          let assetsImported = 0;
+          for (const asset of (bundle.assets || [])) {
+            if (!Assets.get(asset.id)) {
+              Assets.importWithId(asset.id, asset.data, asset.meta);
+              assetsImported++;
+            }
+          }
+
+          // Create the note
+          const ts = bundle.note.ts || Date.now();
+          const state = { t: bundle.note.title, b: bundle.note.body, ts };
+          const url = window.location.pathname + '#' + encodeState(state);
+
+          const record = Registry.add('note', url, {
+            meta: { title: bundle.note.title || 'Untitled', ts }
+          });
+
+          currentRecordId = record.id;
+          titleEl.value = bundle.note.title || '';
+          setBodyContent(bundle.note.body || '');
+          history.replaceState(null, '', url);
+
+          renderNotesList();
+          renderLinks();
+          updateLinkerContext();
+
+          showStatus(`Imported with ${assetsImported} asset${assetsImported !== 1 ? 's' : ''}`);
+        } catch (err) {
+          showStatus('Failed to import: ' + err.message);
+        }
+      };
+      input.click();
+    }
+
+    function showStatus(message) {
+      statusEl.textContent = message;
+      statusEl.classList.add('visible');
+      setTimeout(() => statusEl.classList.remove('visible'), 1500);
+    }
+
+    function openSidebar() { sidebarEl.classList.add('open'); backdropEl.classList.add('visible'); }
+    function closeSidebar() { sidebarEl.classList.remove('open'); backdropEl.classList.remove('visible'); }
+
+    function debounce(fn, delay) {
+      let timeout;
+      return (...args) => { clearTimeout(timeout); timeout = setTimeout(() => fn(...args), delay); };
+    }
+
+    // ============================================
+    // Event Listeners
+    // ============================================
+
+    const debouncedUpdate = debounce(updateCurrentNote, 300);
+    titleEl.addEventListener('input', debouncedUpdate);
+    bodyEl.addEventListener('input', debouncedUpdate);
+
+    document.getElementById('new-btn').addEventListener('click', createNote);
+    document.getElementById('copy-btn').addEventListener('click', copyLink);
+    document.getElementById('share-btn').addEventListener('click', shareNote);
+    document.getElementById('template-btn').addEventListener('click', saveAsTemplate);
+    document.getElementById('export-btn').addEventListener('click', exportBundle);
+    document.getElementById('import-btn').addEventListener('click', importBundle);
+    document.getElementById('menu-btn').addEventListener('click', openSidebar);
+    backdropEl.addEventListener('click', closeSidebar);
+
+    // Image upload handling
+    const imgBtn = document.getElementById('img-btn');
+    const imgInput = document.getElementById('img-input');
+
+    imgBtn.addEventListener('click', () => imgInput.click());
+    imgInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        handleImageUpload(file);
+        imgInput.value = ''; // Reset for next upload
+      }
+    });
+
+    // Paste handling for images
+    bodyEl.addEventListener('paste', async (e) => {
+      const items = e.clipboardData?.items;
+      if (!items) return;
+
+      for (const item of items) {
+        if (item.type.startsWith('image/')) {
+          e.preventDefault();
+          const file = item.getAsFile();
+          if (file) {
+            await handleImageUpload(file);
+          }
+          return;
+        }
+      }
+    });
+
+    // Drag and drop handling for images
+    bodyEl.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      bodyEl.style.borderColor = 'var(--accent)';
+    });
+
+    bodyEl.addEventListener('dragleave', () => {
+      bodyEl.style.borderColor = '';
+    });
+
+    bodyEl.addEventListener('drop', async (e) => {
+      e.preventDefault();
+      bodyEl.style.borderColor = '';
+
+      const files = e.dataTransfer?.files;
+      if (!files?.length) return;
+
+      for (const file of files) {
+        if (file.type.startsWith('image/')) {
+          await handleImageUpload(file);
+        }
+      }
+    });
+
+    notesListEl.addEventListener('click', (e) => {
+      const del = e.target.closest('[data-delete]');
+      if (del) return deleteNote(del.dataset.delete, e);
+
+      const delT = e.target.closest('[data-delete-template]');
+      if (delT) return deleteTemplate(delT.dataset.deleteTemplate, e);
+
+      const tpl = e.target.closest('[data-template]');
+      if (tpl) return useTemplate(tpl.dataset.template);
+
+      const note = e.target.closest('[data-id]');
+      if (note) return selectNote(note.dataset.id);
+    });
+
+    // Link chip clicks
+    linksPanel.addEventListener('click', (e) => {
+      const chip = e.target.closest('.link-chip');
+      if (chip) {
+        navigateToLink(chip.dataset.linkId, chip.dataset.type);
+      }
+    });
+
+    // Inline link clicks in body
+    bodyEl.addEventListener('click', (e) => {
+      const link = e.target.closest('.inline-link');
+      if (link) {
+        e.preventDefault();
+        const id = link.dataset.linkId;
+        const record = Registry.get(id);
+        if (record) {
+          navigateToLink(id, record.type);
+        }
+      }
+    });
+
+    Registry.subscribe(() => renderNotesList());
+
+    window.addEventListener('popstate', () => {
+      const hash = window.location.hash.slice(1);
+      if (hash) {
+        const state = decodeState(hash);
+        if (state) {
+          titleEl.value = state.t || '';
+          setBodyContent(state.b || '');
+        }
+      }
+    });
+
+    // ============================================
+    // Init
+    // ============================================
+
+    function init() {
+      // Init omnibar (nvalt-style search/create)
+      Omnibar.init({
+        app: 'notes',
+        onCreate: (title) => createNote(title),
+        onSelect: (record) => {
+          if (record.type === 'note') {
+            selectNote(record.id);
+            return true; // handled
+          }
+          return false; // let omnibar navigate
+        }
+      });
+
+      // Init linker
+      Linker.init();
+      linkerState = Linker.attach(bodyEl, {
+        recordId: null,
+        excludeId: null
+      });
+
+      // Check for spawn parameter (from cross-app template link)
+      const urlParams = new URLSearchParams(window.location.search);
+      const spawnId = urlParams.get('spawn');
+      if (spawnId) {
+        // Clear the URL parameter
+        history.replaceState(null, '', window.location.pathname);
+        useTemplate(spawnId);
+        return;
+      }
+
+      const notes = Registry.byType('note');
+      const hash = window.location.hash.slice(1);
+
+      if (hash) {
+        const state = decodeState(hash);
+        if (state) {
+          // Try to find existing record by timestamp first, then by URL
+          let existing = null;
+          if (state.ts) {
+            existing = notes.find(n => n.meta?.ts === state.ts);
+          }
+          if (!existing) {
+            // Fallback: match by URL for old notes without timestamp
+            existing = notes.find(n => n.url === window.location.pathname + '#' + hash);
+          }
+
+          if (existing) {
+            currentRecordId = existing.id;
+            // If existing note doesn't have timestamp, add one now
+            if (!existing.meta?.ts) {
+              const ts = Date.now();
+              const newState = { ...state, ts };
+              const url = window.location.pathname + '#' + encodeState(newState);
+              Registry.update(existing.id, { url, meta: { ...existing.meta, ts } });
+              history.replaceState(null, '', url);
+            }
+          } else {
+            // Create new record with timestamp
+            const ts = state.ts || Date.now();
+            const newState = { ...state, ts };
+            const url = window.location.pathname + '#' + encodeState(newState);
+            const record = Registry.add('note', url, {
+              meta: { title: state.t || 'Untitled', preview: state.b?.slice(0, 100), ts }
+            });
+            currentRecordId = record.id;
+            history.replaceState(null, '', url);
+          }
+          titleEl.value = state.t || '';
+          setBodyContent(state.b || '');
+        }
+      } else if (notes.length > 0) {
+        selectNote(notes[0].id);
+        return;
+      } else {
+        createNote();
+        return;
+      }
+
+      updateLinkerContext();
+      renderNotesList();
+      renderLinks();
+    }
+
+    init();
+  </script>
+</body>
+</html>
