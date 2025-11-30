@@ -354,11 +354,23 @@
     import Catalog from '../core/catalog.js';
     import Omnibar from '../core/omnibar.js';
 
+    // Get base URL for GitHub Pages compatibility
+    function getBaseUrl() {
+      const path = window.location.pathname;
+      const match = path.match(/^(.*?\/portable-stateless-apps\/?)/) ||
+                    path.match(/^(.*?)(apps|core|installer|run)\//);
+      if (match) return match[1];
+      const parts = path.split('/').filter(Boolean);
+      if (parts.length > 1) return '/' + parts.slice(0, -1).join('/') + '/';
+      return '/';
+    }
+    const BASE = getBaseUrl();
+
     // Init omnibar
     Omnibar.init({
       app: 'notes',
       onCreate: (title) => {
-        window.location.href = `/apps/note/?create=${encodeURIComponent(title)}`;
+        window.location.href = `${BASE}apps/note/?create=${encodeURIComponent(title)}`;
       }
     });
 
@@ -434,7 +446,7 @@
           <div class="validation success">
             App "${currentBundle.manifest.name}" installed successfully!
             <br><br>
-            <a href="/run/?app=${id}" style="color: inherit; font-weight: 600;">Open App &rarr;</a>
+            <a href="${BASE}run/?app=${id}" style="color: inherit; font-weight: 600;">Open App &rarr;</a>
           </div>
         `;
         bundleInput.value = '';
@@ -499,7 +511,7 @@
               <div class="installed-desc">${escapeHtml(m.description || '')}</div>
             </div>
             <div class="installed-actions">
-              <a href="/run/?app=${id}" class="btn">Open</a>
+              <a href="${BASE}run/?app=${id}" class="btn">Open</a>
               <button class="btn danger" data-uninstall="${id}">Uninstall</button>
             </div>
           </div>

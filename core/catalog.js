@@ -14,11 +14,35 @@ const STORAGE_KEY = 'installed-apps';
 let staticCatalog = null;
 let installedApps = null;
 
+// Get base URL (works on GitHub Pages and localhost)
+function getBaseUrl() {
+  const path = window.location.pathname;
+  // Find the root by looking for known directories
+  const match = path.match(/^(.*?\/portable-stateless-apps\/?)/) ||
+                path.match(/^(.*?)(apps|core|installer|run)\//);
+  if (match) return match[1];
+  // Fallback: go up from current path
+  const parts = path.split('/').filter(Boolean);
+  if (parts.length > 1) {
+    return '/' + parts.slice(0, -1).join('/') + '/';
+  }
+  return '/';
+}
+
 // Load static catalog.json
 async function loadStaticCatalog() {
   if (staticCatalog) return staticCatalog;
   try {
-    staticCatalog = await fetch('/catalog.json').then(r => r.json());
+    const base = getBaseUrl();
+    staticCatalog = await fetch(base + 'catalog.json').then(r => r.json());
+
+    // Fix app paths to be absolute from base
+    Object.keys(staticCatalog.apps).forEach(id => {
+      const app = staticCatalog.apps[id];
+      if (app.path && app.path.startsWith('/apps/')) {
+        app.path = base + app.path.slice(1);
+      }
+    });
   } catch (e) {
     staticCatalog = { apps: {}, recordTypes: {} };
   }
@@ -50,13 +74,14 @@ async function getApps() {
   const apps = { ...static_.apps };
 
   // Add installed apps
+  const base = getBaseUrl();
   Object.entries(installed.apps).forEach(([id, bundle]) => {
     apps[id] = {
       name: bundle.manifest.name,
       description: bundle.manifest.description,
       icon: bundle.manifest.icon,
       version: bundle.manifest.version,
-      path: `/run/?app=${id}`,  // Special path for installed apps
+      path: `${base}run/?app=${id}`,  // Special path for installed apps
       records: bundle.manifest.records,
       installed: true
     };

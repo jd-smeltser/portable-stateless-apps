@@ -220,9 +220,9 @@
     </section>
 
     <footer>
-      <a href="/PROTOCOL.md">Protocol Spec</a>
-      <a href="/installer/">Install Apps</a>
-      <a href="/apps/assets/">Manage Assets</a>
+      <a href="PROTOCOL.md">Protocol Spec</a>
+      <a href="installer/">Install Apps</a>
+      <a href="apps/assets/">Manage Assets</a>
     </footer>
   </div>
 
@@ -237,7 +237,7 @@
       app: 'notes',
       onCreate: (title) => {
         // Navigate to notes app with create param
-        window.location.href = `/apps/note/?create=${encodeURIComponent(title)}`;
+        window.location.href = `apps/note/?create=${encodeURIComponent(title)}`;
       }
     });
 
