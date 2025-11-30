@@ -91,7 +91,7 @@
     <div class="error-icon">😕</div>
     <h1>App Not Found</h1>
     <p id="error-message">The requested app could not be loaded.</p>
-    <a href="/">Go Home</a> · <a href="/installer/">Install Apps</a>
+    <a href="../">Go Home</a> · <a href="../installer/">Install Apps</a>
   </div>
 
   <script type="module">
@@ -100,6 +100,17 @@
     const loadingEl = document.getElementById('loading');
     const errorEl = document.getElementById('error');
     const errorMessage = document.getElementById('error-message');
+
+    // Get base URL for the site (works on GitHub Pages)
+    function getBaseUrl() {
+      const path = window.location.pathname;
+      const match = path.match(/^(.*?\/portable-stateless-apps\/?)/) ||
+                    path.match(/^(.*?)(apps|core|installer|run)\//);
+      if (match) return match[1];
+      const parts = path.split('/').filter(Boolean);
+      if (parts.length > 1) return '/' + parts.slice(0, -1).join('/') + '/';
+      return '/';
+    }
 
     function showError(message) {
       loadingEl.style.display = 'none';
@@ -126,45 +137,43 @@
       // Update page title
       document.title = bundle.manifest.name;
 
-      // Create iframe with app HTML
-      // We use srcdoc to load the HTML directly
-      const iframe = document.createElement('iframe');
-      iframe.id = 'app-frame';
+      // Get base URL and inject <base> tag into app HTML
+      // This allows imports like "/core/registry.js" to work
+      const baseUrl = window.location.origin + getBaseUrl();
+      let html = bundle.html;
 
-      // Inject the HTML into the iframe
-      // Note: The app HTML should be self-contained but can import from /core/
-      iframe.srcdoc = bundle.html;
-
-      // Handle hash forwarding (for record links)
-      if (window.location.hash) {
-        // Append hash to iframe after load
-        iframe.onload = () => {
-          try {
-            iframe.contentWindow.location.hash = window.location.hash;
-          } catch (e) {
-            // Cross-origin restrictions may prevent this
-          }
-        };
+      // Inject <base> tag after <head> or at start of HTML
+      if (html.includes('<head>')) {
+        html = html.replace('<head>', `<head><base href="${baseUrl}">`);
+      } else if (html.includes('<html')) {
+        html = html.replace(/<html[^>]*>/, match => `${match}<head><base href="${baseUrl}"></head>`);
+      } else {
+        html = `<base href="${baseUrl}">` + html;
       }
 
-      // Handle ?create= parameter forwarding
+      // Create iframe with app HTML
+      const iframe = document.createElement('iframe');
+      iframe.id = 'app-frame';
+      iframe.srcdoc = html;
+
+      // Handle hash and create param forwarding
+      const hash = window.location.hash;
       const createParam = params.get('create');
-      if (createParam) {
-        iframe.onload = () => {
-          try {
-            // Try to call the app's create function via postMessage or URL
-            const url = new URL(iframe.contentWindow.location.href);
-            url.searchParams.set('create', createParam);
-            iframe.contentWindow.history.replaceState(null, '', url.toString());
-            // Dispatch a custom event the app can listen for
+
+      iframe.onload = () => {
+        try {
+          if (hash) {
+            iframe.contentWindow.location.hash = hash;
+          }
+          if (createParam) {
             iframe.contentWindow.dispatchEvent(new CustomEvent('app-create', {
               detail: { title: createParam }
             }));
-          } catch (e) {
-            console.warn('Could not forward create param:', e);
           }
-        };
-      }
+        } catch (e) {
+          console.warn('Could not forward params:', e);
+        }
+      };
 
       // Hide loading, show app
       loadingEl.style.display = 'none';
