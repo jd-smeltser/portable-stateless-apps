@@ -104,11 +104,10 @@
     // Get base URL for the site (works on GitHub Pages)
     function getBaseUrl() {
       const path = window.location.pathname;
-      const match = path.match(/^(.*?\/portable-stateless-apps\/?)/) ||
-                    path.match(/^(.*?)(apps|core|installer|run)\//);
+      // Match /portable-stateless-apps/ or similar repo paths
+      const match = path.match(/^(\/[^/]+\/)/) || // First directory segment
+                    path.match(/^(.*\/)(run|apps|installer)\//);
       if (match) return match[1];
-      const parts = path.split('/').filter(Boolean);
-      if (parts.length > 1) return '/' + parts.slice(0, -1).join('/') + '/';
       return '/';
     }
 

@@ -357,11 +357,9 @@
     // Get base URL for GitHub Pages compatibility
     function getBaseUrl() {
       const path = window.location.pathname;
-      const match = path.match(/^(.*?\/portable-stateless-apps\/?)/) ||
-                    path.match(/^(.*?)(apps|core|installer|run)\//);
+      const match = path.match(/^(\/[^/]+\/)/) ||
+                    path.match(/^(.*\/)(run|apps|installer|core)\//);
       if (match) return match[1];
-      const parts = path.split('/').filter(Boolean);
-      if (parts.length > 1) return '/' + parts.slice(0, -1).join('/') + '/';
       return '/';
     }
     const BASE = getBaseUrl();

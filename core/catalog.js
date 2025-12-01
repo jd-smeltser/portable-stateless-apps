@@ -17,15 +17,10 @@ let installedApps = null;
 // Get base URL (works on GitHub Pages and localhost)
 function getBaseUrl() {
   const path = window.location.pathname;
-  // Find the root by looking for known directories
-  const match = path.match(/^(.*?\/portable-stateless-apps\/?)/) ||
-                path.match(/^(.*?)(apps|core|installer|run)\//);
+  // Match first directory segment (e.g., /portable-stateless-apps/)
+  const match = path.match(/^(\/[^/]+\/)/) ||
+                path.match(/^(.*\/)(run|apps|installer|core)\//);
   if (match) return match[1];
-  // Fallback: go up from current path
-  const parts = path.split('/').filter(Boolean);
-  if (parts.length > 1) {
-    return '/' + parts.slice(0, -1).join('/') + '/';
-  }
   return '/';
 }
 
